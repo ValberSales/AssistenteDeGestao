@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="pt-BR" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pepper - Gestão Financeira Inteligente</title>
+    <!-- Tailwind CSS is bundled by Vite using src/index.css, but we can also load Material Icons and styles -->
+    <link rel="stylesheet" href="/src/index.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#f7f9fb] text-[#191c1e] min-h-screen overflow-x-hidden antialiased font-sans transition-colors duration-200">
+    
+    <!-- Main App Wrap: Flex layout for side bar + content area -->
+    <div class="flex min-h-screen w-full relative">
+      
+      <!-- DESKTOP SIDEBAR -->
+      <aside class="hidden md:flex flex-col w-72 h-screen sticky top-0 shrink-0 bg-[#131b2e] text-[#f2f4f6] z-30 border-r border-[#1e293b]/60 shadow-lg justify-between select-none p-5">
+        <div>
+          <!-- Sidebar Header -->
+          <div class="px-3 py-4 border-b border-[#3f465c]/40 mb-6 flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20">
+              <span class="material-symbols-outlined text-white text-[24px]" style="font-variation-settings: 'FILL' 1;">payments</span>
+            </div>
+            <div>
+              <h1 class="text-lg font-black font-display text-white tracking-wide leading-tight">Pepper Gestão</h1>
+              <p class="text-[10px] font-mono uppercase tracking-[0.18em] text-[#dae2fd]/70">Corporativo</p>
+            </div>
+          </div>
+          
+          <!-- Navigation list -->
+          <nav class="space-y-1.5" id="desktop-nav">
+            <button data-target="dashboard" class="nav-item active w-full px-4 py-3 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer bg-white/10 text-white hover:bg-white/15">
+              <span class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-indigo-400" style="font-variation-settings: 'FILL' 1;">home</span>
+                <span class="text-sm">Início</span>
+              </span>
+              <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
+            </button>
+            <button data-target="reports" class="nav-item w-full px-4 py-3 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer text-[#bec6e0]/80 hover:bg-white/5 hover:text-white">
+              <span class="flex items-center gap-3">
+                <span class="material-symbols-outlined">analytics</span>
+                <span class="text-sm">Relatórios</span>
+              </span>
+            </button>
+            <button data-target="bags" class="nav-item w-full px-4 py-3 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer text-[#bec6e0]/80 hover:bg-white/5 hover:text-white">
+              <span class="flex items-center gap-3">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <span class="text-sm">Malotes</span>
+              </span>
+              <span id="bag-count-badge" class="bg-indigo-600/50 text-[10px] text-white px-2 py-0.5 rounded-full font-bold">2</span>
+            </button>
+            <button data-target="settings" class="nav-item w-full px-4 py-3 rounded-xl font-semibold flex items-center justify-between transition-all cursor-pointer text-[#bec6e0]/80 hover:bg-white/5 hover:text-white">
+              <span class="flex items-center gap-3">
+                <span class="material-symbols-outlined">settings</span>
+                <span class="text-sm">Ajustes</span>
+              </span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Big Add Transaction Trigger -->
+          <button id="btn-add-tx-aside" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-md shadow-indigo-600/10 active:scale-[0.98] cursor-pointer">
+            <span class="material-symbols-outlined text-sm">add_circle</span>
+            <span class="text-xs font-display tracking-wider uppercase">Novo Envio</span>
+          </button>
+          
+          <!-- User status / Logout bottom area -->
+          <div class="pt-4 border-t border-[#3f465c]/30 flex flex-col gap-1.5">
+            <button id="btn-quick-swap-aside" class="w-full border border-[#3f465c]/30 hover:bg-white/5 text-xs text-[#bec6e0]/80 py-2.5 px-3 rounded-xl font-medium flex items-center gap-2.5 transition-colors cursor-pointer">
+              <span class="material-symbols-outlined text-xs">cached</span>
+              <span>Alternar Operador</span>
+            </button>
+            <button id="btn-logout-sidebar" class="w-full hover:bg-red-500/10 text-red-400 hover:text-red-300 py-2.5 px-3 rounded-xl font-bold text-xs flex items-center gap-2.5 transition-colors cursor-pointer text-left">
+              <span class="material-symbols-outlined text-base">logout</span>
+              <span>Sair da Sessão</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CONTENT STAGED PANEL -->
+      <div class="flex-1 flex flex-col min-h-screen relative md:max-w-[calc(100%-18rem)]">
+        
+        <!-- TOP APP BAR -->
+        <header class="w-full sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-4 flex items-center justify-between gap-4">
+          
+          <!-- Mobile Sidebar Burger / App Title -->
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-inner flex md:hidden items-center justify-center bg-indigo-600/10">
+              <span class="material-symbols-outlined text-indigo-600 text-lg">wallet</span>
+            </div>
+            <div class="flex flex-col">
+              <!-- Animated Welcome head -->
+              <h2 id="header-greeting" class="text-lg md:text-xl font-black font-display text-slate-800 leading-tight">Bom dia, Ana!</h2>
+              <span id="header-sub" class="text-[10px] md:text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">Diretora Administrativa</span>
+            </div>
+          </div>
+          
+          <!-- Global Search Input & Controls -->
+          <div class="flex items-center gap-3 md:gap-4 flex-1 max-w-lg justify-end md:justify-start">
+            <div class="hidden md:block relative w-full">
+              <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+              <input type="text" id="global-search" class="w-full bg-[#f2f4f6]/70 border border-slate-200/80 hover:border-slate-300 focus:border-indigo-400 font-sans text-sm rounded-xl py-2.5 pl-10 pr-4 outline-none focus:ring-1 focus:ring-indigo-400 transition-all placeholder:text-slate-400 text-slate-700" placeholder="Pesquisar por boletos, notas, categorias ou códigos..." />
+              <!-- Clear Query Trigger -->
+              <button id="clear-search-btn" class="hidden absolute right-3 mt-0.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <span class="material-symbols-outlined text-base">cancel</span>
+              </button>
+            </div>
+            
+            <!-- Quick swap buttons -->
+            <button id="btn-quick-swap" class="sm:hidden text-indigo-600 hover:bg-slate-100 w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer border border-slate-200" title="Alternar Operador">
+              <span class="material-symbols-outlined">sync_alt</span>
+            </button>
+          </div>
+
+          <!-- Utility Widgets on Header -->
+          <div class="flex items-center gap-2.5 md:gap-3 shrink-0">
+            <!-- Notifications Dropdown trigger -->
+            <div class="relative">
+              <button id="notif-bell-btn" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-200/90 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 transition-all cursor-pointer relative">
+                <span class="material-symbols-outlined text-[22px]">notifications</span>
+                <span id="notif-badge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              </button>
+
+              <!-- Notifications Menu -->
+              <div id="notif-dropdown" class="hidden absolute right-0 mt-3 w-80 bg-white border border-slate-200 shadow-xl rounded-2xl py-3 z-50 text-slate-700 animate-in fade-in slide-in-from-top-4 duration-200">
+                <div class="px-4 pb-2 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <span class="font-black text-xs text-slate-800 uppercase tracking-widest font-display">Atualizações</span>
+                  <span class="text-[9px] bg-red-50 text-red-500 px-2.5 py-1 rounded-full font-bold">Alertas</span>
+                </div>
+                <!-- Dynamic notifications injected here -->
+                <div class="max-h-64 overflow-y-auto divide-y divide-slate-50" id="notification-items-container">
+                  <!-- JS builds notifications -->
+                </div>
+                <div class="px-4 pt-2 border-t border-slate-100 text-center">
+                  <button id="btn-clear-notifications" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-500 hover:underline">Marcar todas como lidas</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Avatar Profile dropdown -->
+            <div class="relative">
+              <button id="profile-avatar-btn" class="flex items-center gap-2 select-none active:scale-[0.97] transition-all cursor-pointer">
+                <img id="user-avatar-img" class="w-10 h-10 rounded-xl object-cover border-2 border-white shadow-md shadow-indigo-500/10 hover:border-indigo-400" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&h=150&q=80" alt="Operador" />
+                <span class="hidden lg:flex flex-col items-start leading-tight">
+                  <span id="user-display-name" class="text-xs font-bold text-slate-800 flex items-center gap-1">Ana <span class="material-symbols-outlined text-[14px]">expand_more</span></span>
+                  <span id="user-display-role" class="text-[9px] text-slate-400 font-mono tracking-wider uppercase font-semibold">Diretora Admin</span>
+                </span>
+              </button>
+              
+              <!-- User Profile drop options -->
+              <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white border border-slate-200 shadow-xl rounded-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div class="px-4 py-2 border-b border-slate-100">
+                  <p id="profile-drop-username" class="text-xs font-bold text-slate-800">Ana</p>
+                  <p id="profile-drop-email" class="text-[10px] text-slate-400 truncate font-mono">ana.logs@pepper.com.br</p>
+                </div>
+                <button id="btn-switch-user-drop" class="w-full px-4 py-2.5 text-left text-xs hover:bg-slate-50 text-slate-600 font-medium flex items-center gap-2 cursor-pointer transition-colors border-b border-slate-50">
+                  <span class="material-symbols-outlined text-indigo-500 text-sm">swap_horiz</span>
+                  <span>Mudar Operador</span>
+                </button>
+                <button id="btn-reset-db-drop" class="w-full px-4 py-2.5 text-left text-xs hover:bg-[#ba1a1a]/5 text-red-500 font-bold flex items-center gap-2 cursor-pointer transition-colors">
+                  <span class="material-symbols-outlined text-sm">restart_alt</span>
+                  <span>Wipe / Restaurar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- CONTAINER FOR VIEWS WITH SMOOTH SLIDE-TRANSITIONS -->
+        <main class="flex-1 px-4 md:px-8 py-6 w-full max-w-7xl mx-auto space-y-6 pb-28 md:pb-12">
+          
+          <!-- SEARCH RESULTS OVERLAY BANNER -->
+          <div id="search-overview-banner" class="hidden bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 flex justify-between items-center transition-all animate-in fade-in slide-in-from-top-2 duration-200 mb-4 shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-indigo-600 bg-white p-2 rounded-xl border border-indigo-100 shadow-xs">filter_list</span>
+              <div>
+                <p class="text-xs font-bold text-indigo-950">Filtro de busca ativo</p>
+                <p id="search-overview-text" class="text-[11px] text-indigo-600">Procurando por: <b id="search-term-display">""</b></p>
+              </div>
+            </div>
+            <button id="clear-search-banner-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-sm cursor-pointer transition-colors">Limpar Filtro</button>
+          </div>
+
+          <!-- view: DASHBOARD -->
+          <section id="view-dashboard" class="app-view space-y-6 active select-none">
+            
+            <!-- TOTAL GASTOS (Navy Giant Card) -->
+            <div class="bg-[#131b2e] text-white p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-900/10 relative overflow-hidden group border border-[#1e293b]">
+              <!-- Ambient background decorations -->
+              <div class="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-indigo-600/15 blur-3xl group-hover:bg-indigo-600/25 transition-all duration-500"></div>
+              <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-105 transition-transform duration-500">
+                <span class="material-symbols-outlined text-[130px]" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+              </div>
+              
+              <div class="relative z-10 flex flex-col justify-between h-full min-h-[140px]">
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#dae2fd]/70 mb-1.5 font-mono">Saldo Total de Gastos</p>
+                  <h2 id="dashboard-total-amount" class="text-3xl md:text-5xl font-black font-display tracking-tight text-white select-text">R$ R$ 42.500,00</h2>
+                </div>
+                
+                <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+                  <!-- Indicator tag -->
+                  <div class="flex items-center gap-1.5 text-xs font-semibold bg-white/10 w-fit px-3 py-1.5 rounded-full backdrop-blur-md border border-white/10 shadow-xs animate-in fade-in duration-300">
+                    <span class="material-symbols-outlined text-[16px] text-indigo-300">trending_down</span>
+                    <span class="text-[#f2f4f6]" id="dashboard-period-performance">2.4% menos que mês passado</span>
+                  </div>
+                  
+                  <!-- Desktop controls -->
+                  <div class="flex items-center gap-2">
+                    <button id="dashboard-btn-detail" class="bg-white/95 hover:bg-white text-[#131b2e] text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer">
+                      <span class="material-symbols-outlined text-base">pageview</span>
+                      <span>Análise Geral</span>
+                    </button>
+                    <button id="dashboard-btn-export" class="bg-transparent border border-white/20 hover:bg-white/10 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer active:scale-95 flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-base">picture_as_pdf</span>
+                      <span>Exportar PDF</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- DYNAMIC STATS CARDS GRID -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Warning Card -->
+              <div id="stat-card-warnings" class="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center justify-between gap-4 hover:shadow-md transition-all cursor-pointer">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-[#ba1a1a] shadow-xs shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">priority_high</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Boletos sem Comprovante</p>
+                    <h3 id="stat-pending-tickets" class="text-base font-bold text-red-600 font-display">Simulando...</h3>
+                  </div>
+                </div>
+                <div class="bg-red-50 hover:bg-red-100 p-2 rounded-lg text-red-600 transition-colors">
+                  <span class="material-symbols-outlined text-sm leading-none">arrow_forward</span>
+                </div>
+              </div>
+
+              <!-- General uploads Card -->
+              <div id="stat-card-uploads" class="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center justify-between gap-4 hover:shadow-md transition-all cursor-pointer">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-xs shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">cloud_upload</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Envios no Mês</p>
+                    <h3 id="stat-monthly-uploads" class="text-base font-bold text-slate-800 font-display">Simulando...</h3>
+                  </div>
+                </div>
+                <div class="bg-indigo-50 hover:bg-indigo-100 p-2 rounded-lg text-indigo-600 transition-colors">
+                  <span class="material-symbols-outlined text-sm leading-none">arrow_forward</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- QUICK ACTIONS ROW -->
+            <div class="space-y-3">
+              <h3 class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 leading-none">Ações Rápidas</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button id="quick-action-new" class="flex items-center gap-4 bg-white hover:bg-slate-50 border border-slate-200/80 p-4 rounded-2xl text-left transition-all hover:shadow-sm active:scale-[0.98] cursor-pointer">
+                  <div class="w-12 h-12 rounded-xl bg-[#131b2e] flex-shrink-0 flex items-center justify-center text-white shadow-md shadow-slate-900/10">
+                    <span class="material-symbols-outlined text-[24px]">add_a_photo</span>
+                  </div>
+                  <div>
+                    <span class="text-sm font-black text-slate-800 block">Novo Envio</span>
+                    <span class="text-[10px] text-slate-400 font-medium">Anexar nota fiscal/boleto</span>
+                  </div>
+                </button>
+                
+                <button id="quick-action-extract" class="flex items-center gap-4 bg-white hover:bg-slate-50 border border-slate-200/80 p-4 rounded-2xl text-left transition-all hover:shadow-sm active:scale-[0.98] cursor-pointer">
+                  <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex-shrink-0 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[24px]">receipt_long</span>
+                  </div>
+                  <div>
+                    <span class="text-sm font-black text-slate-800 block">Anexar Extrato</span>
+                    <span class="text-[10px] text-slate-400 font-medium font-mono">Carregar extrato OFX/PDF</span>
+                  </div>
+                </button>
+
+                <button id="quick-action-bundle" class="flex items-center gap-4 bg-white hover:bg-slate-50 border border-slate-200/80 p-4 rounded-2xl text-left transition-all hover:shadow-sm active:scale-[0.98] cursor-pointer">
+                  <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex-shrink-0 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[24px]">inventory_2</span>
+                  </div>
+                  <div>
+                    <span class="text-sm font-black text-slate-800 block">Gerar Malote</span>
+                    <span class="text-[10px] text-slate-400 font-medium">Reunir boletos fechados</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- RECENT ACTIVITIES (Core interactive table card list) -->
+            <div class="space-y-3">
+              <div class="flex justify-between items-end">
+                <h3 class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400 leading-none">Atividade Recente</h3>
+                <button id="view-all-txs-btn" class="text-indigo-600 font-extrabold text-xs hover:underline underline-offset-4 cursor-pointer">Ver Relatório</button>
+              </div>
+
+              <!-- Main Card container for transaction rows -->
+              <div class="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs divide-y divide-slate-100" id="transactions-list-container">
+                <!-- JS dynamically injects rows following beautiful layout style: -->
+                <!-- Green Tag: CONCILIADO -->
+                <!-- Yellow Tag: CONFIRMAR VÍNCULO -->
+                <!-- Red Tag: NF PENDENTE -->
+              </div>
+            </div>
+            
+          </section>
+
+          <!-- view: REPORTS -->
+          <section id="view-reports" class="app-view space-y-6 hidden">
+            
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h1 class="text-2xl font-black font-display text-slate-800">Relatório Financeiro</h1>
+                <p class="text-xs text-slate-400">Análise de custos e conciliação de boletos em tempo real</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <select id="report-filter-category" class="bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none text-slate-700">
+                  <option value="ALL">Todas as Categorias</option>
+                  <option value="Infraestrutura">Infraestrutura</option>
+                  <option value="Consultoria">Consultoria</option>
+                  <option value="Manutenção">Manutenção</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Serviços">Serviços</option>
+                  <option value="Outros">Outros</option>
+                </select>
+                <select id="report-filter-status" class="bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none text-slate-700">
+                  <option value="ALL">Todos os status</option>
+                  <option value="CONCILIADO">Conciliado</option>
+                  <option value="CONFIRMAR VÍNCULO">Confirmar Vínculo</option>
+                  <option value="PENDENTE">Lançamentos Pendentes</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <!-- Category Breakdown Mini Panel -->
+              <div class="lg:col-span-4 bg-white border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs">
+                <div>
+                  <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 mb-4 font-display">Categorias de Gastos</h3>
+                  <!-- Custom visual SVG doughnut or bar lists -->
+                  <div class="relative w-full aspect-square max-w-[160px] mx-auto flex items-center justify-center my-2">
+                    <!-- High definition inline decorative custom vector doughnut representation -->
+                    <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
+                      <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" stroke-width="3"></circle>
+                      <circle cx="18" cy="18" r="15.915" fill="none" class="chart-segment-infra" stroke="#131b2e" stroke-width="3.2" stroke-dasharray="58.8 41.2" stroke-dashoffset="0"></circle>
+                      <circle cx="18" cy="18" r="15.915" fill="none" class="chart-segment-consult" stroke="#10b981" stroke-width="3.2" stroke-dasharray="29.4 70.6" stroke-dashoffset="-58.8"></circle>
+                      <circle cx="18" cy="18" r="15.915" fill="none" class="chart-segment-mainten" stroke="#f59e0b" stroke-width="3.2" stroke-dasharray="11.8 88.2" stroke-dashoffset="-88.2"></circle>
+                    </svg>
+                    <div class="absolute flex flex-col items-center justify-center text-center">
+                      <span id="report-donut-total-desc" class="text-xs font-black text-slate-800 font-display">R$ 42.5k</span>
+                      <span class="text-[9px] text-[#76777d] font-mono tracking-wide uppercase font-semibold">Mensal</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Responsive category rows list -->
+                  <div class="space-y-2 mt-4" id="report-categories-list">
+                    <!-- Dynamic details categories lists values calculated in Vanilla -->
+                  </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4 mt-4 flex items-center justify-between text-xs">
+                  <span class="text-[#76777d] font-medium">Total de descuramento</span>
+                  <span id="report-kpi-total" class="font-extrabold text-slate-800">R$ 42.500,00</span>
+                </div>
+              </div>
+
+              <!-- Filtered List of Details -->
+              <div class="lg:col-span-8 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                  <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 font-display">Análise Individual</h3>
+                  <span class="text-[10px] text-[#76777d] font-mono" id="report-items-count">3 transações encontradas</span>
+                </div>
+                
+                <div class="max-h-[380px] overflow-y-auto divide-y divide-slate-100 pr-1.5" id="report-list-container">
+                  <!-- Dynamic items list -->
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- view: BAGS -->
+          <section id="view-bags" class="app-view space-y-6 hidden">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h1 class="text-2xl font-black font-display text-slate-800">Malotes de Despesas</h1>
+                <p class="text-xs text-slate-400">Reúna faturas e comprovantes fechados para envio físico ou auditoria</p>
+              </div>
+              <button id="btn-create-bag-trigger" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow-md cursor-pointer active:scale-95">
+                <span class="material-symbols-outlined text-base">create_new_folder</span>
+                <span>Gerar Novo Malote</span>
+              </button>
+            </div>
+
+            <!-- BAGS LIST CARDS GRID -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="bags-cards-container">
+              <!-- JS builds cards automatically -->
+            </div>
+
+            <!-- BAG TUTORIAL NOTE -->
+            <div class="bg-indigo-50/50 rounded-2xl p-5 border border-indigo-100/60 flex flex-col md:flex-row items-start md:items-center gap-4">
+              <span class="material-symbols-outlined text-indigo-600 text-3xl bg-white p-3 rounded-2xl border border-indigo-100 shadow-xs shrink-0">info</span>
+              <div>
+                <p class="text-xs font-bold text-slate-800 md:text-sm">Como funciona o fechamento por Malote?</p>
+                <p class="text-[11px] md:text-xs text-[#76777d] mt-1">
+                  Os malotes Pepper permitem reunir múltiplos boletos e notas fiscais de um mesmo período ou setor. Ao fechar um malote, o sistema gera a folha de rosto para impressão com códigos de barra consolidados, facilitando o recebimento da controladoria central.
+                </p>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- view: SETTINGS -->
+          <section id="view-settings" class="app-view space-y-6 hidden">
+            
+            <div class="border-b border-slate-100 pb-4">
+              <h1 class="text-2xl font-black font-display text-slate-800">Ajustes e Customização</h1>
+              <p class="text-xs text-slate-400">Gerencie perfis, controle dados e configure o visual da aplicação</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              <!-- Profile Card -->
+              <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-6">
+                <div class="space-y-4">
+                  <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 font-display border-b border-slate-50 pb-2">Perfil do Operador</h3>
+                  <div class="flex flex-col items-center text-center py-4">
+                    <div class="relative group">
+                      <img id="settings-user-avatar" class="w-20 h-20 rounded-2xl object-cover border-4 border-slate-100 shadow-md" src="" alt="Avatar" />
+                      <div class="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] py-1 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-bold">Mock</div>
+                    </div>
+                    <span id="settings-user-name" class="font-extrabold text-base text-slate-800 mt-3 font-display">Nome</span>
+                    <span id="settings-user-role" class="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold mt-0.5">Role</span>
+                    <span id="settings-user-email" class="text-xs text-[#76777d] font-mono mt-1">email@pepper.com</span>
+                  </div>
+                </div>
+                <button id="settings-btn-swap" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer">Alternar para outro perfil</button>
+              </div>
+
+              <!-- Preferences / Theme Card -->
+              <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+                <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 font-display border-b border-slate-50 pb-2">Preferências e Aparência</h3>
+                
+                <!-- Preferences Item Theme -->
+                <div class="flex items-center justify-between pb-3">
+                  <div>
+                    <label class="text-xs font-extrabold text-slate-800 block">Tema do sistema</label>
+                    <span class="text-[10px] text-slate-400">Simule o modo escuro/claro</span>
+                  </div>
+                  <div class="flex items-center bg-slate-100/80 p-1 border border-slate-200/80 rounded-xl gap-1">
+                    <button id="theme-btn-light" class="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 transition-all select-none bg-white shadow-xs" title="Tema Claro">
+                      <span class="material-symbols-outlined text-sm block">light_mode</span>
+                    </button>
+                    <button id="theme-btn-dark" class="p-1.5 rounded-lg text-slate-400 hover:text-[#94a3b8] transition-all select-none" title="Tema Escuro">
+                      <span class="material-symbols-outlined text-sm block">dark_mode</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Preferences Item Notifications toggle -->
+                <div class="flex items-center justify-between border-t border-slate-50 pt-3">
+                  <div>
+                    <label class="text-xs font-extrabold text-[#191c1e] block">Notificações por Som</label>
+                    <span class="text-[10px] text-slate-400">Reproduzir aviso de novas despesas</span>
+                  </div>
+                  <button id="setting-toggle-sound" class="w-10 h-6 bg-indigo-600 rounded-full p-0.5 transition-colors relative cursor-pointer" data-active="true">
+                    <div class="w-5 h-5 bg-white rounded-full shadow-md transform translate-x-4 transition-transform"></div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Database Reset / Admin Actions -->
+              <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+                <div class="space-y-4">
+                  <h3 class="text-xs font-black uppercase tracking-wider text-red-600 font-display border-b border-red-50 pb-2">Zona de Perigo</h3>
+                  <p class="text-[10px] text-slate-400 leading-relaxed leading-normal">
+                    Se você notar alguma inconsistência ou quiser esvaziar os malotes, utilize um dos botões abaixo para limpar o localStorage ou restaurar os dados de teste iniciais.
+                  </p>
+                </div>
+                
+                <div class="space-y-2">
+                  <button id="btn-wipe-database" class="w-full bg-red-600 hover:bg-[#ba1a1a] text-white py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer">Esvaziar Banco Local</button>
+                  <button id="btn-restore-samples" class="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer">Restaurar Amostras Originais</button>
+                </div>
+              </div>
+
+            </div>
+
+          </section>
+
+        </main>
+
+        <!-- FLOATING ACTION BUTTON (AI Assistant) -->
+        <button id="btn-chat-ai-fab" class="fixed bottom-24 md:bottom-6 right-6 z-50 flex items-center justify-center bg-[#131b2e] shadow-xl rounded-2xl w-14 h-14 hover:scale-105 transition-all outline-none border border-white/10 ring-4 ring-white select-none cursor-pointer group hover:bg-slate-800">
+          <span class="material-symbols-outlined text-white text-[28px] leading-none animate-bounce mt-1">smart_toy</span>
+          <div class="absolute right-full mr-3 bg-[#131b2e] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">Falar com Assistente Pepper</div>
+        </button>
+
+        <!-- DRAWER / PANEL CHAT AI -->
+        <div id="ai-chat-drawer" class="hidden fixed inset-0 z-50 bg-[#1d3133]/40 backdrop-blur-xs justify-end select-none">
+          <div class="w-full max-w-md bg-white h-screen shadow-2xl flex flex-col relative animate-in slide-in-from-right duration-300">
+            
+            <!-- Chat Head -->
+            <div class="p-4 bg-[#131b2e] text-white flex justify-between items-center z-10 select-none">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-indigo-400 text-3xl leading-none">smart_toy</span>
+                <div>
+                  <h3 class="font-black text-sm tracking-wide font-display text-white">Pepper Smart-AI</h3>
+                  <span class="text-[9px] text-indigo-300 font-mono flex items-center gap-1"><span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>Online • Assistente de Gestão</span>
+                </div>
+              </div>
+              <button id="close-chat-drawer-btn" class="hover:bg-white/10 p-1.5 rounded-xl text-slate-300 hover:text-white transition-colors cursor-pointer select-none">
+                <span class="material-symbols-outlined text-xl block leading-none">close</span>
+              </button>
+            </div>
+
+            <!-- Chat Suggestions / Shortcuts list bar -->
+            <div class="px-4 py-2 border-b border-slate-100/50 flex gap-1.5 overflow-x-auto hide-scrollbar bg-slate-50 shrink-0">
+              <button class="chat-preset text-[10px] font-bold text-slate-700 bg-white border border-slate-200/80 px-3 py-1.5 rounded-full shrink-0 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer">Saldo Geral?</button>
+              <button class="chat-preset text-[10px] font-bold text-slate-700 bg-white border border-slate-200/80 px-3 py-1.5 rounded-full shrink-0 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer">Pendências?</button>
+              <button class="chat-preset text-[10px] font-bold text-slate-700 bg-white border border-slate-200/80 px-3 py-1.5 rounded-full shrink-0 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer">Como gerar Malote?</button>
+              <button class="chat-preset text-[10px] font-bold text-slate-700 bg-white border border-slate-200/80 px-3 py-1.5 rounded-full shrink-0 hover:border-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer">Análise de Custos?</button>
+            </div>
+
+            <!-- Messages Body -->
+            <div id="chat-messages-body" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#f7f9fb] text-slate-700 max-h-[80vh] select-text">
+              <!-- Chat historical records dynamically mounted in JS -->
+            </div>
+
+            <!-- Chat Send Box -->
+            <form id="ai-chat-input-form" class="p-4 border-t border-slate-100 bg-white flex gap-2 shrink-0 select-none">
+              <input type="text" id="ai-chat-input-field" class="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-400 focus:bg-white transition-all text-slate-800" placeholder="Pergunte sobre notas, boletos ou malotes..." required />
+              <button type="submit" class="bg-[#131b2e] text-white p-2.5 rounded-xl hover:bg-indigo-600 transition-colors flex items-center justify-center shrink-0 cursor-pointer">
+                <span class="material-symbols-outlined text-base leading-none">send</span>
+              </button>
+            </form>
+
+          </div>
+        </div>
+
+        <!-- NEW MOBILE BOTTOM NAVIGATION BAR (Matches perfectly the screenshot specification) -->
+        <nav class="md:hidden fixed bottom-0 left-0 w-full h-20 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] flex justify-around items-center px-4 pb-2 z-40 select-none">
+          <!-- Home -->
+          <button data-target="dashboard" class="mobile-nav-item active flex flex-col items-center justify-center text-indigo-600 px-3 py-1 active:scale-90 transition-all cursor-pointer">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest mt-1">Início</span>
+          </button>
+          
+          <!-- Reports -->
+          <button data-target="reports" class="mobile-nav-item flex flex-col items-center justify-center text-slate-400 hover:text-slate-800 px-3 py-1 active:scale-90 transition-all cursor-pointer">
+            <span class="material-symbols-outlined">analytics</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest mt-1">Relatórios</span>
+          </button>
+          
+          <!-- Central FAB "Novo Envio" button -->
+          <div class="relative -top-3">
+            <button id="mobile-central-fab" class="w-14 h-14 bg-[#131b2e] rounded-2xl shadow-2xl flex items-center justify-center text-white hover:bg-slate-800 active:scale-95 transition-all border-4 border-white cursor-pointer" title="Novo Envio de Comprovante">
+              <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">add_a_photo</span>
+            </button>
+          </div>
+          
+          <!-- Batches / Malotes -->
+          <button data-target="bags" class="mobile-nav-item flex flex-col items-center justify-center text-slate-400 hover:text-slate-800 px-3 py-1 active:scale-90 transition-all cursor-pointer">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest mt-1">Malotes</span>
+          </button>
+          
+          <!-- Settings / Ajustes -->
+          <button data-target="settings" class="mobile-nav-item flex flex-col items-center justify-center text-slate-400 hover:text-slate-800 px-3 py-1 active:scale-90 transition-all cursor-pointer">
+            <span class="material-symbols-outlined">settings</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest mt-1">Ajustes</span>
+          </button>
+        </nav>
+
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!--          MODALS & FORM POPUPS AREA         -->
+    <!-- ========================================== -->
+
+    <!-- MODAL: ADD TRANSACTION ("Novo Envio" wizard modal) -->
+    <div id="modal-add-transaction" class="hidden fixed inset-0 z-50 bg-[#1d3133]/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <!-- Modal Head -->
+        <div class="p-6 bg-[#131b2e] text-white flex justify-between items-center">
+          <div class="flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-indigo-400 text-2xl">add_a_photo</span>
+            <h3 class="font-black font-display text-base">Novo Envio de Documento</h3>
+          </div>
+          <button id="close-tx-modal-btn" class="hover:bg-white/10 p-1.5 rounded-xl text-slate-300 hover:text-white transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-lg leading-none block">close</span>
+          </button>
+        </div>
+
+        <!-- Modal Body Form -->
+        <form id="form-add-transaction-inner" class="p-6 space-y-4">
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div class="col-span-2">
+              <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Título do Documento</label>
+              <input type="text" id="tx-input-title" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-1 focus:ring-indigo-500 hover:border-slate-300 outline-none transition-colors" placeholder="Ex: Boleto Aluguel, Recibo Água" required />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Valor do Gasto (R$)</label>
+              <input type="number" step="0.01" id="tx-input-amount" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-1 focus:ring-indigo-500 hover:border-slate-300 outline-none transition-colors" placeholder="0.00" required />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Tipo de Documento</label>
+              <select id="tx-input-type" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-1 focus:ring-indigo-500 hover:border-slate-300 outline-none transition-colors text-slate-700">
+                <option value="BOLETO">Boleto Bancário</option>
+                <option value="NOTA_FISCAL">Nota Fiscal (NF)</option>
+                <option value="RECIBO">Recibo Avulso</option>
+                <option value="OUTRO">Outro documento de suporte</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Categoria</label>
+              <select id="tx-input-category" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-1 focus:ring-indigo-500 hover:border-slate-300 outline-none transition-colors text-slate-700">
+                <option value="Infraestrutura">Infraestrutura</option>
+                <option value="Consultoria">Consultoria</option>
+                <option value="Manutenção">Manutenção</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Serviços">Serviços</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Status do Lançamento</label>
+              <select id="tx-input-status" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-1 focus:ring-indigo-500 hover:border-slate-300 outline-none transition-colors text-slate-700">
+                <option value="PENDENTE">Lançamento Pendente</option>
+                <option value="CONFIRMAR VÍNCULO">Confirmar Vínculo (Anexado)</option>
+                <option value="CONCILIADO">Conciliado (Quitado/Aprovado)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Simulation Camera Attachment Area -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">Anexar Comprovante / Capturar Boleto</label>
+            <div id="tx-drag-drop" class="border-2 border-dashed border-slate-200 rounded-2xl p-5 text-center hover:border-indigo-400 group transition-all bg-[#f8fafc]/50 cursor-pointer text-slate-700">
+              <span class="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 inline-block text-3xl mb-1 transition-colors">add_photo_alternate</span>
+              <p class="text-xs font-extrabold group-hover:text-indigo-600 transition-colors">Arraste a foto ou clique para simular captura de boleto</p>
+              <p class="text-[9px] text-[#76777d]/90 font-mono mt-0.5">Formatos aceitos: JPG, PNG, PDF ou TIFF</p>
+              
+              <!-- Hidden simulated uploads status -->
+              <div id="simulated-upload-file-chip" class="hidden mt-3 inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100 text-[10px] font-bold shadow-xs">
+                <span class="material-symbols-outlined text-xs">task</span>
+                <span id="uploaded-filename">boleto_scan_capturado.png</span>
+                <button type="button" id="btn-cancel-simul-file" class="hover:text-red-500 font-black text-xs leading-none">×</button>
+              </div>
+            </div>
+            <!-- Input file hidden -->
+            <input type="file" id="tx-hidden-file-input" class="hidden" accept="image/*,application/pdf" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Observações / Notas Internas</label>
+            <textarea id="tx-input-notes" rows="2" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-1 focus:ring-indigo-500 hover:border-slate-300 outline-none transition-colors" placeholder="Informação adicional sobre este comprovante..."></textarea>
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button type="button" id="btn-cancel-tx-creation" class="hover:bg-slate-100 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">Descartar</button>
+            <button type="submit" class="bg-[#131b2e] hover:bg-slate-800 text-white text-xs font-black px-5 py-2.5 rounded-xl transition-colors shadow-sm cursor-pointer">Confirmar Envio</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: TRANSACTION DETAILS & CONCILIATION PREVIEW -->
+    <div id="modal-tx-details" class="hidden fixed inset-0 z-50 bg-[#1d3133]/65 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        <div class="p-5 bg-[#131b2e] text-white flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-indigo-400">payments</span>
+            <span class="font-black text-base font-display">Detalhes do Documento</span>
+          </div>
+          <button id="close-details-modal-btn" class="hover:bg-white/10 p-1.5 rounded-xl text-slate-300 hover:text-white transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-lg leading-none block">close</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-slate-100 min-h-[340px]">
+          
+          <!-- ColumnLeft: Document details specs -->
+          <div class="md:col-span-7 p-6 space-y-4">
+            <div>
+              <span id="detail-badge-type" class="text-[9px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-mono font-bold tracking-wider">BOLETO</span>
+              <h2 id="detail-title" class="text-xl font-black text-slate-800 mt-1 font-display leading-tight select-all">Boleto Aluguel</h2>
+              <span id="detail-date" class="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">Hoje, 10:45</span>
+            </div>
+
+            <!-- Price point tag -->
+            <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+              <div>
+                <span class="text-[10px] uppercase text-slate-400 font-mono font-bold tracking-wide">Valor Lançado</span>
+                <p id="detail-amount" class="text-2xl font-black text-[#131b2e] font-display mt-0.5 select-all">R$ 25.000,00</p>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase text-slate-400 font-mono font-bold tracking-wide block">Categoria</span>
+                <span id="detail-category" class="text-xs bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-1 rounded-full font-bold inline-block mt-0.5">Infraestrutura</span>
+              </div>
+            </div>
+
+            <!-- Descriptive Notes -->
+            <div class="space-y-1">
+              <span class="text-[10px] uppercase text-slate-400 font-mono font-bold tracking-wide">Notas de Lançamento</span>
+              <p id="detail-notes" class="text-xs text-slate-600 italic bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">Sem observações.</p>
+            </div>
+
+            <!-- Associated Bag code if closed -->
+            <div id="detail-bag-association-row" class="hidden flex items-center gap-2 text-xs bg-indigo-50/70 text-indigo-700 p-2.5 rounded-xl border border-indigo-100">
+              <span class="material-symbols-outlined text-sm shrink-0">inventory_2</span>
+              <span>Lançamento fechado no malote: <b id="detail-association-bag-code" class="font-mono">MAL-2026-001</b></span>
+            </div>
+
+            <!-- Change Status actions togglers -->
+            <div class="space-y-2 border-t border-slate-100 pt-4" id="details-actions-status-panel">
+              <span class="text-[10px] uppercase text-slate-400 font-mono font-bold tracking-wide block">Alterar Status</span>
+              <div class="grid grid-cols-3 gap-1 px-0.5">
+                <button id="btn-status-to-pending" class="px-2 py-2 rounded-xl text-[9px] font-black tracking-wide border transition-all cursor-pointer">PENDENTE</button>
+                <button id="btn-status-to-confirm" class="px-2 py-2 rounded-xl text-[9px] font-black tracking-wide border transition-all cursor-pointer">CONFIRMAR</button>
+                <button id="btn-status-to-conciliated" class="px-2 py-2 rounded-xl text-[9px] font-black tracking-wide border transition-all cursor-pointer">CONCILIADO</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ColumnRight: Document Image Preview / Attachment area -->
+          <div class="md:col-span-5 p-6 space-y-4 bg-slate-50/50 flex flex-col justify-between">
+            <div class="space-y-2 flex-1 flex flex-col justify-start">
+              <span class="text-[10px] uppercase text-slate-400 font-mono font-bold tracking-wide block">Anexo Comprovante</span>
+              
+              <!-- Simulated document mockup rendering representation container -->
+              <div id="detail-document-iframe-mock" class="border border-slate-200/80 rounded-2xl overflow-hidden bg-slate-200/80 min-h-[140px] flex flex-col items-center justify-center text-center p-3 relative shadow-inner">
+                <!-- If no file is uploaded: icon to upload -->
+                <div id="mock-file-missing" class="space-y-2">
+                  <span class="material-symbols-outlined text-slate-400 text-3xl">insert_drive_file</span>
+                  <p class="text-[10px] font-bold text-slate-600 block">Nenhum comprovante anexado</p>
+                  <button id="detail-btn-direct-attach" class="text-[10px] bg-indigo-600 hover:bg-slate-800 text-white font-black px-2.5 py-1 rounded-md cursor-pointer transition-colors shadow-xs">Anexar Agora</button>
+                </div>
+
+                <!-- If file exists: show a beautiful layout representation of the bill -->
+                <div id="mock-file-present" class="hidden w-full h-full flex flex-col justify-between p-3 bg-white text-slate-800 text-[9px] rounded-xl shadow-md border border-slate-200/70 select-none">
+                  <div class="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
+                    <span class="font-extrabold uppercase font-mono text-indigo-600">BANCO SWIFT S.A.</span>
+                    <span class="text-slate-400 font-bold tracking-widest font-mono">06/2026</span>
+                  </div>
+                  <div class="py-2.5 text-left font-mono space-y-1 leading-tight">
+                    <p class="font-black text-[10px] text-slate-800" id="mock-ticket-name">Boleto Aluguel</p>
+                    <p class="text-slate-400">Ref: PEPPER-DESP-0229</p>
+                    <p class="text-slate-400">Valor Pago: <span class="font-bold text-slate-800" id="mock-ticket-price">R$ 25.000,00</span></p>
+                  </div>
+                  <div class="bg-indigo-50 border border-indigo-100 p-1.5 rounded-md text-indigo-600 font-bold font-mono tracking-widest flex items-center justify-center text-center">
+                    ||||||||||||||||||||| | 12930.12903
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Danger deletions trigger -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between ">
+              <button id="detail-btn-delete" class="text-[#ba1a1a] hover:bg-red-50 text-xs font-bold px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">delete</span>
+                <span>Excluir</span>
+              </button>
+              <button id="detail-btn-close-modal" class="bg-[#131b2e] hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer">Fechar</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: GENERATE MALOTE / BUNDLE BAGS -->
+    <div id="modal-bag-creation" class="hidden fixed inset-0 z-50 bg-[#1d3133]/65 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <!-- Header -->
+        <div class="p-5 bg-[#131b2e] text-white flex justify-between items-center">
+          <div class="flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-indigo-400 text-2xl">create_new_folder</span>
+            <span class="font-black text-base font-display">Gerar Novo Malote Pepper</span>
+          </div>
+          <button id="close-bag-modal-btn" class="hover:bg-white/10 p-1.5 rounded-xl text-slate-300 hover:text-white transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-lg leading-none block">close</span>
+          </button>
+        </div>
+
+        <form id="form-bag-creation-inner" class="p-6 space-y-4 text-slate-700">
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Código do Malote</label>
+              <input type="text" id="bag-input-code" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:ring-1 focus:ring-indigo-500 font-mono font-bold" value="MAL-2026-003" readonly required />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Destinatário Logística</label>
+              <input type="text" class="w-full bg-slate-100 text-slate-500 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none cursor-not-allowed" value="Controladoria Central - Matriz" readonly />
+            </div>
+          </div>
+
+          <!-- Select which documents to include checklist list -->
+          <div class="space-y-2">
+            <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">Documentos disponíveis para agrupamento</label>
+            
+            <div class="border border-slate-100 bg-[#f8fafc]/50 rounded-2xl max-h-[160px] overflow-y-auto p-2.5 space-y-1.5" id="bag-modal-documents-selector">
+              <!-- Inline JS dynamic generation -->
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-100 p-3.5 rounded-2xl">
+            <div>
+              <span class="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider block">Total de Boletos Selecionados</span>
+              <p id="bag-computed-count" class="text-sm font-black text-[#131b2e] mt-0.5">0 documentos</p>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider block">Soma de Valores</span>
+              <p id="bag-computed-sum" class="text-base font-black text-indigo-600 mt-0.5">R$ 0,00</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">Observações Operacionais</label>
+            <input id="bag-input-notes" class="w-full bg-[#f2f4f6]/80 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-1 focus:ring-indigo-500 outline-none hover:border-slate-300" placeholder="Ex: Filial São Paulo, Notas Fiscais de Marketing" />
+          </div>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button type="button" id="btn-cancel-bag" class="hover:bg-slate-100 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">Descartar</button>
+            <button type="submit" class="bg-[#131b2e] hover:bg-slate-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm cursor-pointer">Gerar Malote Fechado</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!--      VITE MODULES CENTRAL ENTRYPOINT       -->
+    <!-- ========================================== -->
+    <script type="module" src="/src/main.js"></script>
+
+  </body>
+</html>
