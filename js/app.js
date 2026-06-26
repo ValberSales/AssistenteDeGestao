@@ -1,8 +1,7 @@
-import './index.css';
 import { AppStore } from './store.js';
-
-// Setup and boot local state
-AppStore.init();
+import { createTransactionRow } from './components/TransactionRow.js';
+import { createBagCard } from './components/BagCard.js';
+import { createChatBubble } from './components/ChatBubble.js';
 
 // Global DOM elements references
 const elements = {
@@ -11,6 +10,7 @@ const elements = {
   viewReports: document.getElementById('view-reports'),
   viewBags: document.getElementById('view-bags'),
   viewSettings: document.getElementById('view-settings'),
+  viewSearchResults: document.getElementById('view-search-results'),
 
   // Sidebar and Navbar indicators
   desktopNavItems: document.querySelectorAll('#desktop-nav .nav-item'),
@@ -26,11 +26,25 @@ const elements = {
 
   // Search input
   globalSearch: document.getElementById('global-search'),
+  globalSearchForm: document.getElementById('global-search-form'),
   clearSearchBtn: document.getElementById('clear-search-btn'),
   searchOverviewBanner: document.getElementById('search-overview-banner'),
   searchOverviewText: document.getElementById('search-overview-text'),
   searchTermDisplay: document.getElementById('search-term-display'),
   clearSearchBannerBtn: document.getElementById('clear-search-banner-btn'),
+
+  // Search Results view & filters
+  btnToggleMobileFilters: document.getElementById('btn-toggle-mobile-filters'),
+  searchFiltersSidebar: document.getElementById('search-filters-sidebar'),
+  btnClearAllFilters: document.getElementById('btn-clear-all-filters'),
+  filterDateStart: document.getElementById('filter-date-start'),
+  filterDateEnd: document.getElementById('filter-date-end'),
+  filterPriceMin: document.getElementById('filter-price-min'),
+  filterPriceMax: document.getElementById('filter-price-max'),
+  searchResultsCount: document.getElementById('search-results-count'),
+  searchResultsTotalSum: document.getElementById('search-results-total-sum'),
+  searchResultsListContainer: document.getElementById('search-results-list-container'),
+  searchResultsSubtitle: document.getElementById('search-results-subtitle'),
 
   // Notification panel
   notifBellBtn: document.getElementById('notif-bell-btn'),
@@ -146,7 +160,24 @@ const elements = {
   closeChatDrawerBtn: document.getElementById('close-chat-drawer-btn'),
   chatMessagesBody: document.getElementById('chat-messages-body'),
   aiChatInputForm: document.getElementById('ai-chat-input-form'),
-  aiChatInputField: document.getElementById('ai-chat-input-field')
+  aiChatInputField: document.getElementById('ai-chat-input-field'),
+
+  // Entries / Exits Report elements
+  btnIoReportModal: document.getElementById('btn-io-report-modal'),
+  modalIoReport: document.getElementById('modal-io-report'),
+  closeIoReportModal: document.getElementById('close-io-report-modal'),
+  formIoReport: document.getElementById('form-io-report'),
+  ioReportStartDate: document.getElementById('io-report-start-date'),
+  ioReportEndDate: document.getElementById('io-report-end-date'),
+  ioChartContainer: document.getElementById('io-chart-container'),
+  ioLineChart: document.getElementById('io-line-chart'),
+  btnCancelIoReport: document.getElementById('btn-cancel-io-report'),
+
+  // Mobile Camera simulation elements
+  btnOpenMobileCamera: document.getElementById('btn-open-mobile-camera'),
+  mobileCameraViewfinder: document.getElementById('mobile-camera-viewfinder'),
+  btnCloseMobileCamera: document.getElementById('btn-close-mobile-camera'),
+  btnCaptureMobilePhoto: document.getElementById('btn-capture-mobile-photo')
 };
 
 // Application State Managers
@@ -170,6 +201,36 @@ const formatCurrency = (amount) => {
     currency: 'BRL',
     minimumFractionDigits: 2
   }).format(amount);
+};
+
+// Helper: Format ISO timestamp to friendly relative layout
+const formatFriendlyDate = (isoString) => {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return isoString;
+
+  const now = new Date();
+  const isToday = d.getDate() === now.getDate() && 
+                  d.getMonth() === now.getMonth() && 
+                  d.getFullYear() === now.getFullYear();
+                  
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = d.getDate() === yesterday.getDate() && 
+                      d.getMonth() === yesterday.getMonth() && 
+                      d.getFullYear() === yesterday.getFullYear();
+
+  const padZero = (n) => String(n).padStart(2, '0');
+  const timeStr = `${padZero(d.getHours())}:${padZero(d.getMinutes())}`;
+
+  if (isToday) {
+    return `Hoje, ${timeStr}`;
+  } else if (isYesterday) {
+    return `Ontem, ${timeStr}`;
+  } else {
+    const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    return `${padZero(d.getDate())} ${months[d.getMonth()]}, ${timeStr}`;
+  }
 };
 
 // Audio simulations
@@ -206,10 +267,12 @@ const switchView = (targetView) => {
   activeView = targetView;
   
   // Hide all sections with smooth enter/fade classes
-  const views = [elements.viewDashboard, elements.viewReports, elements.viewBags, elements.viewSettings];
+  const views = [elements.viewDashboard, elements.viewReports, elements.viewBags, elements.viewSettings, elements.viewSearchResults];
   views.forEach(v => {
-    v.classList.add('hidden');
-    v.classList.remove('view-enter', 'view-enter-active');
+    if (v) {
+      v.classList.add('hidden');
+      v.classList.remove('view-enter', 'view-enter-active');
+    }
   });
 
   // Activate destination view
@@ -219,6 +282,7 @@ const switchView = (targetView) => {
     case 'reports': targetNode = elements.viewReports; break;
     case 'bags': targetNode = elements.viewBags; break;
     case 'settings': targetNode = elements.viewSettings; break;
+    case 'search-results': targetNode = elements.viewSearchResults; break;
   }
 
   if (targetNode) {
@@ -238,17 +302,9 @@ const switchView = (targetView) => {
     if (match) {
       item.classList.add('bg-white/10', 'text-white');
       item.classList.remove('text-[#bec6e0]/80', 'hover:bg-white/5');
-      // Append subtle target circle dot dynamically inside button
-      if (!item.querySelector('.nav-dot')) {
-        const dot = document.createElement('span');
-        dot.className = 'nav-dot w-1.5 h-1.5 bg-indigo-400 rounded-full';
-        item.appendChild(dot);
-      }
     } else {
       item.classList.remove('bg-white/10', 'text-white');
       item.classList.add('text-[#bec6e0]/80', 'hover:bg-white/5');
-      const dot = item.querySelector('.nav-dot');
-      if (dot) dot.remove();
     }
   });
 
@@ -258,18 +314,22 @@ const switchView = (targetView) => {
     if (match) {
       item.classList.add('text-indigo-600');
       item.classList.remove('text-slate-400');
-      item.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 1";
+      const icon = item.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 1";
     } else {
       item.classList.remove('text-indigo-600');
       item.classList.add('text-slate-400');
-      item.querySelector('.material-symbols-outlined').style.fontVariationSettings = "'FILL' 0";
+      const icon = item.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 0";
     }
   });
 
   // Sync calculations depending on selected viewport tab
+  if (targetView === 'dashboard') renderDashboard();
   if (targetView === 'reports') renderReports();
   if (targetView === 'bags') renderBags();
   if (targetView === 'settings') renderSettings();
+  if (targetView === 'search-results') renderSearchResults();
 };
 
 // Mount nav triggers
@@ -302,6 +362,8 @@ const renderDashboard = () => {
   const filteredTxs = filterBySearch(txs, currentSearchQuery);
   const user = AppStore.getActiveUser();
 
+  if (!user) return;
+
   // Greeting
   elements.headerGreeting.textContent = `Bom dia, ${user.name}!`;
   elements.headerSub.textContent = user.role;
@@ -313,8 +375,15 @@ const renderDashboard = () => {
   elements.profileDropUsername.textContent = user.name;
   elements.profileDropEmail.textContent = user.email;
 
-  // Compute stats values
-  const totalSpend = txs.reduce((sum, t) => sum + t.amount, 0);
+  // Compute stats values dynamically for the current month
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentMonthTxs = txs.filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  });
+  const totalSpend = currentMonthTxs.reduce((sum, t) => sum + t.amount, 0);
   elements.dashboardTotalAmount.textContent = formatCurrency(totalSpend);
 
   // Update period descriptive text based on operator profile
@@ -329,7 +398,7 @@ const renderDashboard = () => {
   elements.statPendingTickets.textContent = `${pendings} pendentes`;
 
   // Total uploads this month (number of recorded documents)
-  elements.statMonthlyUploads.textContent = `${txs.length} envios`;
+  elements.statMonthlyUploads.textContent = `${currentMonthTxs.length} envios`;
 
   // Render recent activity list container
   elements.transactionsListContainer.innerHTML = '';
@@ -347,72 +416,13 @@ const renderDashboard = () => {
 
   // Iterate to build individual rows
   filteredTxs.forEach(tx => {
-    const itemRow = document.createElement('div');
-    // Highlight items with different left border matching statuses
-    let borderClass = 'border-l-4 border-l-slate-400/50';
-    let labelBg = 'bg-slate-50 text-slate-600 border border-slate-200/50';
-    let displayStatus = tx.status;
-
-    if (tx.status === 'CONCILIADO') {
-      borderClass = 'border-l-4 border-l-emerald-500';
-      labelBg = 'bg-emerald-50 text-emerald-700 border-emerald-100';
-    } else if (tx.status === 'CONFIRMAR VÍNCULO') {
-      borderClass = 'border-l-4 border-l-amber-500';
-      labelBg = 'bg-amber-50 text-amber-700 border-amber-100';
-    } else if (tx.status === 'PENDENTE') {
-      borderClass = 'border-l-4 border-l-red-500';
-      labelBg = 'bg-red-50 text-red-700 border-red-100';
-      displayStatus = 'NF PENDENTE';
-    }
-
-    // Determine correct document icons
-    let typeIcon = 'receipt_long';
-    if (tx.type === 'NOTA_FISCAL') typeIcon = 'description';
-    if (tx.type === 'RECIBO') typeIcon = 'history_edu';
-
-    itemRow.className = `flex items-center justify-between p-4 bg-white hover:bg-slate-50/50 transition-all ${borderClass}`;
-    itemRow.innerHTML = `
-      <div class="flex items-center gap-4 shrink-0 min-w-0 flex-1">
-        <div class="w-10 h-10 rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-center shrink-0">
-          <span class="material-symbols-outlined text-slate-500 text-lg">${typeIcon}</span>
-        </div>
-        <div class="truncate pr-2">
-          <p class="text-xs md:text-sm font-extrabold text-[#131b2e] truncate font-display select-text">${tx.title}</p>
-          <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">${tx.date}</span>
-            <span class="text-[10px] font-mono text-zinc-400">•</span>
-            <span class="text-[10px] font-mono text-slate-400 truncate max-w-[120px]">${tx.category}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right column details badges & actions -->
-      <div class="flex items-center gap-3">
-        <div class="text-right shrink-0">
-          <p class="text-xs md:text-sm font-black text-[#131b2e] font-display select-text">${formatCurrency(tx.amount)}</p>
-          <div class="inline-block mt-1 ${labelBg} px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider shadow-inner">
-            ${displayStatus}
-          </div>
-        </div>
-        
-        <button class="btn-open-details w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200/80 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-colors cursor-pointer shrink-0" data-id="${tx.id}">
-          <span class="material-symbols-outlined text-base">more_vert</span>
-        </button>
-      </div>
-    `;
-
-    // Hook detail modal trigger
-    itemRow.querySelector('.btn-open-details').addEventListener('click', () => {
-      openDetailsModal(tx.id);
-    });
-
+    const itemRow = createTransactionRow(tx, openDetailsModal, formatCurrency, formatFriendlyDate);
     elements.transactionsListContainer.appendChild(itemRow);
   });
 };
 
 const renderBags = () => {
   const bags = AppStore.getBags();
-  const txs = AppStore.getTransactions();
   elements.bagsCardsContainer.innerHTML = '';
 
   // Synchronize bag indicator badge
@@ -430,73 +440,16 @@ const renderBags = () => {
   }
 
   bags.forEach(bag => {
-    const card = document.createElement('div');
-    
-    // Status style mapping
-    let statusClass = 'bg-slate-100 text-slate-700';
-    if (bag.status === 'ENVIADO') statusClass = 'bg-indigo-50 border border-indigo-100 text-indigo-700';
-    if (bag.status === 'RECEBIDO') statusClass = 'bg-emerald-50 border border-emerald-100 text-emerald-700';
-    if (bag.status === 'ABERTO') statusClass = 'bg-amber-50 border border-amber-100 text-amber-700';
-
-    card.className = "bg-white border border-slate-200 p-5 rounded-2xl flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group";
-    card.innerHTML = `
-      <!-- Status Badge -->
-      <div class="flex items-start justify-between">
-        <div>
-          <span class="${statusClass} text-[9px] font-black font-mono tracking-wider uppercase px-2.5 py-1 rounded-md mb-2 inline-block">
-            ${bag.status}
-          </span>
-          <h4 class="text-base font-black text-slate-800 font-display select-text">${bag.code}</h4>
-          <p class="text-[10px] text-slate-400 font-mono mt-0.5">Criado em: ${new Date(bag.createdAt).toLocaleDateString()}</p>
-        </div>
-        <div class="text-right shrink-0">
-          <span class="text-[9px] text-[#76777d]/90 font-mono font-bold block uppercase tracking-wide">Valor Somado</span>
-          <p class="text-base font-black text-slate-800 font-display mt-0.5 select-text">${formatCurrency(bag.totalAmount)}</p>
-        </div>
-      </div>
-
-      <!-- Notes and statistics inside card -->
-      <div class="my-4 pt-3 border-t border-slate-50 space-y-2">
-        <p class="text-xs text-[#76777d] truncate italic">"${bag.notes || 'Sem observações operacionais registradas.'}"</p>
-        <div class="flex items-center gap-2 text-[11px] text-[#131b2e] font-bold">
-          <span class="material-symbols-outlined text-sm leading-none text-indigo-500">receipt_long</span>
-          <span>${bag.transactionsCount} comprovantes embalados</span>
-        </div>
-      </div>
-
-      <!-- Actions togglers inside bag -->
-      <div class="flex gap-2 border-t border-slate-50 pt-3 mt-1 justify-end">
-        ${bag.status === 'ABERTO' ? `
-          <button class="btn-dispatch-bag bg-indigo-600 hover:bg-slate-800 text-white font-bold text-[10px] uppercase tracking-wider py-1.5 px-3 rounded-lg transition-colors cursor-pointer select-none" data-id="${bag.id}">
-            Protocolar Envio
-          </button>
-        ` : ''}
-        <button class="btn-print-bag text-[#131b2e] border border-slate-200 hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider py-1.5 px-3 rounded-lg transition-all cursor-pointer select-none flex items-center gap-1 shrink-0" data-id="${bag.id}">
-          <span class="material-symbols-outlined text-xs">print</span>
-          <span>Imprimir Guia</span>
-        </button>
-      </div>
-    `;
-
-    // Hook actions
-    const btnDispatch = card.querySelector('.btn-dispatch-bag');
-    if (btnDispatch) {
-      btnDispatch.addEventListener('click', () => {
-        dispatchBag(bag.id);
-      });
-    }
-
-    const btnPrint = card.querySelector('.btn-print-bag');
-    btnPrint.addEventListener('click', () => {
-      alert(`Imprimindo Guia De Envio de Malote consolidador:\nCódigo: ${bag.code}\nQuantidade: ${bag.transactionsCount} comprovantes\nTotal: ${formatCurrency(bag.totalAmount)}\n\n(Simulação de PDF de rosto iniciada!)`);
-    });
-
+    const card = createBagCard(bag, dispatchBag, (b) => {
+      alert(`Imprimindo Guia De Envio de Malote consolidador:\nCódigo: ${b.code}\nQuantidade: ${b.transactionsCount} comprovantes\nTotal: ${formatCurrency(b.totalAmount)}\n\n(Simulação de PDF de rosto iniciada!)`);
+    }, formatCurrency);
     elements.bagsCardsContainer.appendChild(card);
   });
 };
 
 const renderSettings = () => {
   const user = AppStore.getActiveUser();
+  if (!user) return;
   elements.settingsUserAvatar.src = user.avatar;
   elements.settingsUserName.textContent = user.name;
   elements.settingsUserRole.textContent = user.role;
@@ -511,6 +464,59 @@ const renderSettings = () => {
     elements.themeBtnLight.className = 'p-1.5 rounded-lg text-indigo-600 transition-all select-none bg-white shadow-xs';
     elements.themeBtnDark.className = 'p-1.5 rounded-lg text-slate-400 hover:text-[#94a3b8] transition-all select-none';
   }
+};
+
+const renderSearchResults = () => {
+  const txs = AppStore.getTransactions();
+  
+  const startDate = elements.filterDateStart.value;
+  const endDate = elements.filterDateEnd.value;
+  const minVal = elements.filterPriceMin.value ? parseFloat(elements.filterPriceMin.value) : null;
+  const maxVal = elements.filterPriceMax.value ? parseFloat(elements.filterPriceMax.value) : null;
+  
+  const types = Array.from(document.querySelectorAll('.filter-type-check:checked')).map(cb => cb.value);
+  const categories = Array.from(document.querySelectorAll('.filter-category-check:checked')).map(cb => cb.value);
+  const statuses = Array.from(document.querySelectorAll('.filter-status-check:checked')).map(cb => cb.value);
+  
+  const filtered = filterBySearch(txs, currentSearchQuery, {
+    startDate,
+    endDate,
+    types,
+    categories,
+    statuses,
+    minVal,
+    maxVal
+  });
+  
+  const count = filtered.length;
+  elements.searchResultsCount.textContent = count === 1 ? '1 despesa encontrada' : `${count} despesas encontradas`;
+  
+  const totalSum = filtered.reduce((sum, t) => sum + t.amount, 0);
+  elements.searchResultsTotalSum.textContent = `Total: ${formatCurrency(totalSum)}`;
+  
+  if (currentSearchQuery) {
+    elements.searchResultsSubtitle.textContent = `Exibindo resultados para "${currentSearchQuery}"`;
+  } else {
+    elements.searchResultsSubtitle.textContent = `Exibindo todas as despesas filtradas`;
+  }
+  
+  elements.searchResultsListContainer.innerHTML = '';
+  
+  if (filtered.length === 0) {
+    elements.searchResultsListContainer.innerHTML = `
+      <div class="p-8 text-center text-slate-400 bg-white">
+        <span class="material-symbols-outlined text-4xl block mb-2 text-slate-300">search_off</span>
+        <p class="text-xs font-bold font-display">Nenhum resultado encontrado</p>
+        <p class="text-[10px] text-slate-400 mt-1">Ajuste os filtros ou o termo de busca.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  filtered.forEach(tx => {
+    const row = createTransactionRow(tx, openDetailsModal, formatCurrency, formatFriendlyDate);
+    elements.searchResultsListContainer.appendChild(row);
+  });
 };
 
 
@@ -667,15 +673,41 @@ const updateSvgChartSegments = (dist, total) => {
 //               SEARCH CONTROLS
 // ==========================================
 
-const filterBySearch = (arr, term) => {
-  if (!term) return arr;
-  const lower = term.toLowerCase();
-  return arr.filter(t => 
-    t.title.toLowerCase().includes(lower) ||
-    t.category.toLowerCase().includes(lower) ||
-    t.status.toLowerCase().includes(lower) ||
-    (t.notes && t.notes.toLowerCase().includes(lower))
-  );
+const filterBySearch = (arr, term, filters = {}) => {
+  let list = arr;
+  if (term) {
+    const lower = term.toLowerCase();
+    list = list.filter(t => 
+      t.title.toLowerCase().includes(lower) ||
+      t.category.toLowerCase().includes(lower) ||
+      t.status.toLowerCase().includes(lower) ||
+      (t.notes && t.notes.toLowerCase().includes(lower))
+    );
+  }
+  
+  if (filters.startDate) {
+    list = list.filter(t => t.date.substring(0, 10) >= filters.startDate);
+  }
+  if (filters.endDate) {
+    list = list.filter(t => t.date.substring(0, 10) <= filters.endDate);
+  }
+  if (filters.types && filters.types.length > 0) {
+    list = list.filter(t => filters.types.includes(t.type));
+  }
+  if (filters.categories && filters.categories.length > 0) {
+    list = list.filter(t => filters.categories.includes(t.category));
+  }
+  if (filters.statuses && filters.statuses.length > 0) {
+    list = list.filter(t => filters.statuses.includes(t.status));
+  }
+  if (filters.minVal !== undefined && filters.minVal !== null && !isNaN(filters.minVal)) {
+    list = list.filter(t => t.amount >= filters.minVal);
+  }
+  if (filters.maxVal !== undefined && filters.maxVal !== null && !isNaN(filters.maxVal)) {
+    list = list.filter(t => t.amount <= filters.maxVal);
+  }
+  
+  return list;
 };
 
 const handleGlobalSearch = (query) => {
@@ -686,14 +718,23 @@ const handleGlobalSearch = (query) => {
     elements.clearSearchBtn.classList.remove('hidden');
     elements.searchOverviewBanner.classList.remove('hidden');
     elements.searchTermDisplay.textContent = `"${currentSearchQuery}"`;
+    
+    if (activeView !== 'search-results') {
+      switchView('search-results');
+    } else {
+      renderSearchResults();
+    }
   } else {
     elements.clearSearchBtn.classList.add('hidden');
     elements.searchOverviewBanner.classList.add('hidden');
+    
+    if (activeView === 'search-results') {
+      renderSearchResults();
+    } else {
+      if (activeView === 'dashboard') renderDashboard();
+      if (activeView === 'reports') renderReports();
+    }
   }
-
-  // Refresh active tabs data renders
-  if (activeView === 'dashboard') renderDashboard();
-  if (activeView === 'reports') renderReports();
 };
 
 
@@ -811,7 +852,6 @@ const changeSelectedTransactionStatus = (newStatus) => {
     return;
   }
 
-  const prevStatus = txs[txIndex].status;
   txs[txIndex].status = newStatus;
 
   // Automatically add attachment simulation details if moving from "PENDENTE" to "CONFIRMAR VÍNCULO" without an attachment
@@ -895,7 +935,7 @@ const openBagCreationModal = () => {
       row.innerHTML = `
         <div class="flex items-center gap-2.5 min-w-0">
           <input type="checkbox" value="${tx.id}" class="bag-doc-check w-4 h-4 rounded-md text-indigo-600 focus:ring-0 cursor-pointer" />
-          <div class="truncate">
+          <div class="truncate text-left">
             <span class="text-xs font-bold text-slate-800 block truncate">${tx.title}</span>
             <span class="text-[9px] text-slate-400 font-mono">${tx.category} • ${tx.status}</span>
           </div>
@@ -1005,6 +1045,7 @@ const dispatchBag = (id) => {
 
 const switchActiveUser = () => {
   const user = AppStore.getActiveUser();
+  if (!user) return;
   const nextTarget = user.username === 'ana' ? 'swift' : 'ana';
   const swapped = AppStore.switchUser(nextTarget);
 
@@ -1036,12 +1077,19 @@ const createTopAlertToast = (text, iconName = 'done') => {
 
   document.body.appendChild(container);
 
+  const removeToast = () => {
+    if (container.parentNode) {
+      container.remove();
+    }
+  };
+
   // Automatically sweep away
   setTimeout(() => {
     container.classList.add('animate-out', 'fade-out', 'slide-out-to-top-12', 'duration-300');
-    container.addEventListener('animationend', () => {
-      container.remove();
-    });
+    container.addEventListener('animationend', removeToast);
+    
+    // Safety fallback removal if animationend event is not triggered by the browser
+    setTimeout(removeToast, 350);
   }, 4000);
 };
 
@@ -1052,7 +1100,6 @@ const createTopAlertToast = (text, iconName = 'done') => {
 
 const loadNotificationLogs = () => {
   elements.notificationItemsContainer.innerHTML = '';
-  // Keep only first 4 items for aesthetic cleanliness
   const unreadCount = notificationsList.filter(n => n.unread).length;
   
   if (unreadCount > 0) {
@@ -1115,27 +1162,8 @@ const renderChatHistory = () => {
   elements.chatMessagesBody.innerHTML = '';
 
   history.forEach(item => {
-    const box = document.createElement('div');
-    const isAi = item.sender === 'ai';
-    
-    // Aesthetic alignments based on sender
-    if (isAi) {
-      box.className = 'max-w-[85%] bg-white border border-slate-100 p-3.5 rounded-2xl rounded-tl-sm self-start shadow-xs flex flex-col gap-1 inline-block animate-in fade-in duration-200';
-      box.innerHTML = `
-        <span class="text-[8px] font-mono tracking-widest uppercase font-black text-indigo-500 mb-0.5 leading-none block">Pepper AI Assessor</span>
-        <div class="text-xs font-semibold leading-relaxed text-slate-700 select-text">${formatMarkdownText(item.text)}</div>
-        <span class="text-[8px] text-slate-400 font-mono text-right mt-1 font-bold leading-none">${item.time || 'Agora'}</span>
-      `;
-    } else {
-      box.className = 'max-w-[85%] bg-[#131b2e] text-white p-3.5 rounded-2xl rounded-tr-sm self-end shadow-md flex flex-col gap-1 ml-auto animate-in fade-in duration-200';
-      box.innerHTML = `
-        <span class="text-[8px] font-mono tracking-widest uppercase font-black text-[#bec6e0]/80 mb-0.5 leading-none block">Operador Logs</span>
-        <div class="text-xs font-medium leading-relaxed text-[#f2f4f6] select-text">${item.text}</div>
-        <span class="text-[8px] text-[#bec6e0]/70 font-mono text-right mt-1 font-bold leading-none">${item.time || 'Agora'}</span>
-      `;
-    }
-
-    elements.chatMessagesBody.appendChild(box);
+    const bubble = createChatBubble(item, formatMarkdownText);
+    elements.chatMessagesBody.appendChild(bubble);
   });
 
   // Scroll smoothly to bottom
@@ -1150,14 +1178,15 @@ const formatMarkdownText = (text) => {
 
 const processAIQuery = (queryText) => {
   const txs = AppStore.getTransactions();
-  const userName = AppStore.getActiveUser().name;
+  const activeUser = AppStore.getActiveUser();
+  const userName = activeUser ? activeUser.name : 'Operador';
   const lower = queryText.toLowerCase();
 
   let responseText = '';
 
   if (lower.includes('saldo') || lower.includes('gast') || lower.includes('custo') || lower.includes('dinheir')) {
     const total = txs.reduce((sum, t) => sum + t.amount, 0);
-    responseText = `Olá **${userName}**! Atualmente, o saldo total somado de todas as despesas registradas no banco de dados local da filial é de **${formatCurrency(total)}**.\n\nEste mês apresenta uma ótima eficiência de gestão com base em reduções operacionais consolidadas.`;
+    responseText = `Olá **${userName}**! Atualmente, o saldo total somado de todas as despesas registradas no banco de dados local da filial é de **${formatCurrency(total)}**.\n\nEste mês apresenta uma ótima eficiência de gestão com base em rateios operacionais consolidados.`;
   } 
   else if (lower.includes('pend') || lower.includes('comprovant') || lower.includes('nf') || lower.includes('fata')) {
     const pendingsList = txs.filter(t => t.status === 'PENDENTE' || t.status === 'CONFIRMAR VÍNCULO');
@@ -1186,7 +1215,7 @@ const processAIQuery = (queryText) => {
       `Para uma visualização detalhada com estatísticas, visite a aba **"Relatórios"** no menu principal.`;
   } 
   else {
-    responseText = `Entendi sua dúvida, **${userName}**. Como seu assistente financeiro Pepper, estou habilitado a fazer auditorias rápidas no banco local de despesas.\n\nVocê pode me perguntar sobre:\n- \`Saldo de Gastos\`\n- \`Pendências de Comprovantes\`\n- \`Estatísticas de Relatórios\`\n- \`Guia de Malotes\``;
+    responseText = `Entendi sua dúvida, **${userName}**. Como seu Assistente de Gestão, estou habilitado a fazer auditorias rápidas no banco local de despesas.\n\nVocê pode me perguntar sobre:\n- \`Saldo de Gastos\`\n- \`Pendências de Comprovantes\`\n- \`Estatísticas de Relatórios\`\n- \`Guia de Malotes\``;
   }
 
   // Record user bubble
@@ -1218,7 +1247,8 @@ const processAIQuery = (queryText) => {
 
 const handleSimulatedStatementImport = () => {
   if (confirm('Simular upload de extrato OFX/PDF bancário de conciliação?\n\nEste utilitário simulará o recebimento de extrato eletrônico e injetará 2 novas cobranças de despesas no banco de dados local.')) {
-    const userName = AppStore.getActiveUser().name;
+    const activeUser = AppStore.getActiveUser();
+    const userName = activeUser ? activeUser.name : 'Operador';
     
     const simNewTxs = [
       {
@@ -1257,11 +1287,191 @@ const handleSimulatedStatementImport = () => {
 
 
 // ==========================================
+//          ENTRIES & EXITS REPORT MODAL
+// ==========================================
+
+const openIoReportModal = () => {
+  elements.ioReportStartDate.value = '';
+  elements.ioReportEndDate.value = '';
+  elements.ioChartContainer.classList.add('hidden');
+  elements.modalIoReport.classList.remove('hidden');
+  playNotificationSound();
+};
+
+const closeIoReportModal = () => {
+  elements.modalIoReport.classList.add('hidden');
+};
+
+const generateIoReportChart = (e) => {
+  e.preventDefault();
+  
+  const startDateVal = elements.ioReportStartDate.value;
+  const endDateVal = elements.ioReportEndDate.value;
+  
+  if (!startDateVal || !endDateVal) return;
+  
+  const txs = AppStore.getTransactions();
+  const start = new Date(startDateVal + 'T00:00:00');
+  const end = new Date(endDateVal + 'T23:59:59');
+  
+  if (start > end) {
+    alert('Erro: A data inicial não pode ser maior que a data final.');
+    return;
+  }
+  
+  const diffTime = Math.abs(end - start);
+  const intervalsCount = 5;
+  const intervalMs = diffTime / (intervalsCount - 1 || 1);
+  
+  const points = [];
+  for (let i = 0; i < intervalsCount; i++) {
+    const pointDate = new Date(start.getTime() + i * intervalMs);
+    points.push(pointDate);
+  }
+  
+  const exitsData = [];
+  const entriesData = [];
+  
+  let seed = start.getDate() + end.getDate() + 42;
+  const mockRandom = () => {
+    let x = Math.sin(seed++) * 10000;
+    return Math.floor((x - Math.floor(x)) * 22000) + 12000;
+  };
+
+  points.forEach((pt, idx) => {
+    const ptStart = new Date(pt.getTime() - (idx === 0 ? 0 : intervalMs / 2));
+    const ptEnd = new Date(pt.getTime() + (idx === intervalsCount - 1 ? 0 : intervalMs / 2));
+    
+    const intervalTxs = txs.filter(t => {
+      const d = new Date(t.date);
+      return d >= ptStart && d <= ptEnd;
+    });
+    
+    const sumExits = intervalTxs.reduce((sum, t) => sum + t.amount, 0);
+    exitsData.push(sumExits);
+    entriesData.push(mockRandom());
+  });
+  
+  // Render SVG Chart
+  const svg = elements.ioLineChart;
+  svg.innerHTML = '';
+  
+  const maxVal = Math.max(...entriesData, ...exitsData, 5000);
+  
+  const gridHTML = `
+    <!-- Grid -->
+    <line x1="45" y1="20" x2="360" y2="20" stroke="#f1f5f9" stroke-width="1" />
+    <line x1="45" y1="90" x2="360" y2="90" stroke="#f1f5f9" stroke-width="1" />
+    <line x1="45" y1="160" x2="360" y2="160" stroke="#cbd5e1" stroke-width="1.5" />
+    
+    <!-- Y Labels -->
+    <text x="40" y="24" text-anchor="end" fill="#94a3b8" class="text-[8px] font-mono">${formatCurrency(maxVal)}</text>
+    <text x="40" y="94" text-anchor="end" fill="#94a3b8" class="text-[8px] font-mono">${formatCurrency(maxVal / 2)}</text>
+    <text x="40" y="164" text-anchor="end" fill="#94a3b8" class="text-[8px] font-mono">R$ 0</text>
+  `;
+  
+  const entryPoints = [];
+  const exitPoints = [];
+  let labelsHTML = '';
+  
+  points.forEach((pt, i) => {
+    const x = 55 + i * (290 / (intervalsCount - 1));
+    const entryY = 160 - (entriesData[i] / maxVal) * 130;
+    const exitY = 160 - (exitsData[i] / maxVal) * 130;
+    
+    entryPoints.push(`${x},${entryY}`);
+    exitPoints.push(`${x},${exitY}`);
+    
+    const dateStr = pt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    labelsHTML += `<text x="${x}" y="180" text-anchor="middle" fill="#94a3b8" class="text-[8px] font-mono font-bold">${dateStr}</text>`;
+  });
+  
+  const entriesPathHTML = `
+    <!-- Entries Line (Green) -->
+    <polyline points="${entryPoints.join(' ')}" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    ${entryPoints.map((p, idx) => {
+      const [x, y] = p.split(',');
+      return `<circle cx="${x}" cy="${y}" r="3.5" fill="#ffffff" stroke="#10b981" stroke-width="2.5" />
+              <text x="${x}" y="${y - 8}" text-anchor="middle" fill="#047857" class="text-[7px] font-black font-mono">${formatCurrency(entriesData[idx])}</text>`;
+    }).join('')}
+  `;
+  
+  const exitsPathHTML = `
+    <!-- Exits Line (Red) -->
+    <polyline points="${exitPoints.join(' ')}" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    ${exitPoints.map((p, idx) => {
+      const [x, y] = p.split(',');
+      return `<circle cx="${x}" cy="${y}" r="3.5" fill="#ffffff" stroke="#ef4444" stroke-width="2.5" />
+              <text x="${x}" y="${y - 8}" text-anchor="middle" fill="#b91c1c" class="text-[7px] font-black font-mono">${formatCurrency(exitsData[idx])}</text>`;
+    }).join('')}
+  `;
+  
+  svg.innerHTML = gridHTML + labelsHTML + entriesPathHTML + exitsPathHTML;
+  elements.ioChartContainer.classList.remove('hidden');
+  
+  // Dispatch warning test toast!
+  createTopAlertToast('Alerta: as despesas superaram o valor histórico', 'warning');
+};
+
+// ==========================================
+//      MOBILE CAMERA VIEWPORT SIMULATOR
+// ==========================================
+
+const openMobileCamera = () => {
+  elements.btnOpenMobileCamera.classList.add('hidden');
+  elements.mobileCameraViewfinder.classList.remove('hidden');
+  playNotificationSound();
+};
+
+const closeMobileCamera = () => {
+  elements.mobileCameraViewfinder.classList.add('hidden');
+  elements.btnOpenMobileCamera.classList.remove('hidden');
+};
+
+const captureMobilePhoto = () => {
+  // Simulate shutter sound chime via simple success high sound
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    // Shutter camera click simulator (noise burst or quick frequency drop)
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch (e) {
+    console.log('Audio camera capture click warning');
+  }
+
+  // Simulate file capture
+  simulatedFilename = `recibo_camera_${Date.now().toString().slice(-4)}.png`;
+  elements.uploadedFilename.textContent = simulatedFilename;
+  elements.simulatedUploadFileChip.classList.remove('hidden');
+  
+  // Set link status to confirm
+  elements.txInputStatus.value = 'CONFIRMAR VÍNCULO';
+  
+  // Reset camera layout view
+  closeMobileCamera();
+  
+  // Trigger toast dialog confirmation
+  createTopAlertToast('Comprovante capturado via câmera do celular!', 'photo_camera');
+};
+
+
+// ==========================================
 //             EVENT LISTENERS
 // ==========================================
 
 const initEventListeners = () => {
-  // Global search input
+  // Global search input & form
   elements.globalSearch.addEventListener('input', (e) => handleGlobalSearch(e.target.value));
   elements.clearSearchBtn.addEventListener('click', () => {
     elements.globalSearch.value = '';
@@ -1270,6 +1480,50 @@ const initEventListeners = () => {
   elements.clearSearchBannerBtn.addEventListener('click', () => {
     elements.globalSearch.value = '';
     handleGlobalSearch('');
+  });
+  elements.globalSearchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleGlobalSearch(elements.globalSearch.value);
+  });
+
+  // Mobile filters toggle sidebar
+  if (elements.btnToggleMobileFilters) {
+    elements.btnToggleMobileFilters.addEventListener('click', () => {
+      elements.searchFiltersSidebar.classList.toggle('hidden');
+    });
+  }
+
+  // Dynamic search view filter listeners
+  const triggerSearchResultsUpdate = () => {
+    if (activeView === 'search-results') {
+      renderSearchResults();
+    }
+  };
+
+  elements.filterDateStart.addEventListener('change', triggerSearchResultsUpdate);
+  elements.filterDateEnd.addEventListener('change', triggerSearchResultsUpdate);
+  elements.filterPriceMin.addEventListener('input', triggerSearchResultsUpdate);
+  elements.filterPriceMax.addEventListener('input', triggerSearchResultsUpdate);
+
+  document.querySelectorAll('.filter-type-check').forEach(cb => {
+    cb.addEventListener('change', triggerSearchResultsUpdate);
+  });
+  document.querySelectorAll('.filter-category-check').forEach(cb => {
+    cb.addEventListener('change', triggerSearchResultsUpdate);
+  });
+  document.querySelectorAll('.filter-status-check').forEach(cb => {
+    cb.addEventListener('change', triggerSearchResultsUpdate);
+  });
+
+  elements.btnClearAllFilters.addEventListener('click', () => {
+    elements.filterDateStart.value = '';
+    elements.filterDateEnd.value = '';
+    elements.filterPriceMin.value = '';
+    elements.filterPriceMax.value = '';
+    document.querySelectorAll('.filter-type-check, .filter-category-check, .filter-status-check').forEach(cb => {
+      cb.checked = false;
+    });
+    renderSearchResults();
   });
 
   // Notifications Bell dropdown trigger
@@ -1312,7 +1566,7 @@ const initEventListeners = () => {
       AppStore.resetDatabase();
       loadNotificationLogs();
       renderDashboard();
-      createTopAlertToast('Base de dados Pepper redefinida!', 'restart_alt');
+      createTopAlertToast('Base de dados do Assistente de Gestão redefinida!', 'restart_alt');
       playNotificationSound();
     }
   });
@@ -1479,10 +1733,11 @@ const initEventListeners = () => {
   elements.btnWipeDatabase.addEventListener('click', () => {
     if (confirm('ATENÇÃO: Deseja esvaziar todo o histórico e despesas salvas? Isso não afetará as amostras se você recarregar a página.')) {
       localStorage.clear();
-      AppStore.init();
-      switchView('dashboard');
-      renderDashboard();
-      createTopAlertToast('Banco de dados local limpo!', 'delete_forever');
+      AppStore.init().then(() => {
+        switchView('dashboard');
+        renderDashboard();
+        createTopAlertToast('Banco de dados local limpo!', 'delete_forever');
+      });
     }
   });
 
@@ -1528,6 +1783,17 @@ const initEventListeners = () => {
   // Hook reports tab filters
   elements.reportFilterCategory.addEventListener('change', renderReports);
   elements.reportFilterStatus.addEventListener('change', renderReports);
+
+  // Entries / Exits Report Modal triggers
+  elements.btnIoReportModal.addEventListener('click', openIoReportModal);
+  elements.closeIoReportModal.addEventListener('click', closeIoReportModal);
+  elements.btnCancelIoReport.addEventListener('click', closeIoReportModal);
+  elements.formIoReport.addEventListener('submit', generateIoReportChart);
+
+  // Mobile Camera simulation triggers
+  elements.btnOpenMobileCamera.addEventListener('click', openMobileCamera);
+  elements.btnCloseMobileCamera.addEventListener('click', closeMobileCamera);
+  elements.btnCaptureMobilePhoto.addEventListener('click', captureMobilePhoto);
 };
 
 
@@ -1551,9 +1817,30 @@ const init = () => {
   renderDashboard();
   loadNotificationLogs();
   
-  console.log('Pepper Ledger Admin system initialized with total success!');
+  console.log('Assistente de Gestão Admin system initialized with total success!');
 };
 
-// Start the core Vanilla framework application
-window.addEventListener('DOMContentLoaded', init);
-init();
+export { init, switchView, renderDashboard, renderBags, renderReports, renderSettings, filterBySearch, formatCurrency, playNotificationSound };
+
+// Auto-booting when script is imported in browser
+const boot = async () => {
+  try {
+    if (!document.getElementById('view-dashboard')) {
+      console.log('Skipping auto-boot: main view container not found (test runner detected).');
+      return;
+    }
+    await AppStore.init();
+    init();
+  } catch (err) {
+    console.error('Failed to boot application:', err);
+  }
+};
+
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    boot();
+  } else {
+    window.addEventListener('DOMContentLoaded', boot);
+  }
+}
+

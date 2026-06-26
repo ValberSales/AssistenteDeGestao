@@ -1,0 +1,9 @@
+# Test Harness & Temporary Files (Local Only)
+test_harness.html
+tests/
+index_head.html
+main_head.js
+main_head.js.bak
+store_head.js
+failures_log.md
+node_modules/

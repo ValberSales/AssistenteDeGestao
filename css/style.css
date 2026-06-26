@@ -1,18 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Manrope", sans-serif;
-  --font-headline: "Manrope", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-  
-  --color-brand-navy: #131b2e;
-  --color-brand-navy-light: #1e293b;
-  --color-executive-surface: #f7f9fb;
-  --color-accent-teal: #10b981;
-  --color-accent-amber: #f59e0b;
-}
 
 /* Slide and Fade transitions for smooth view switching */
 .view-enter {
@@ -23,7 +9,7 @@
 .view-enter-active {
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .interactive-press {
@@ -53,3 +39,28 @@
   background: #94a3b8;
 }
 
+/* Dark mode overrides for scrollbars */
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Custom hide scrollbars helper */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Limit chat text bubble lines */
+.truncate-two-lines {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

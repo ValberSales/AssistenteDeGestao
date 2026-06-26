@@ -1,6 +1,0 @@
-{
-  "name": "Pepper Gestão Financeira",
-  "description": "Assistente de gestão financeira e controle de gastos com fluxo de boletos, notas fiscais, malotes e suporte de chat inteligente.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
